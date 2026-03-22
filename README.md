@@ -151,9 +151,3 @@ GitHub：[https://github.com/ichochy/nce](https://github.com/ichochy/nce)
 8. Your effort will make English speak for you.（你的努力，会让英语为你发声。）
 9. Learning English is not a task but a journey of discovery.（学习英语不是任务，而是探索世界的旅程。）
 10. Be brave — speak out; you’re better than you think.（坚定一点，说出口，你比想象中更好。）
-
-
-
-
-
-![sponsor.jpg](https://image.ichochy.com/sponsor.jpg)
