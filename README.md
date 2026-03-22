@@ -10,7 +10,6 @@
 ![mobile.jpg](https://image.ichochy.com/Blog/mobile.jpg)
 
 ## 信息
-Email: [me@ichochy.com](mailto:me@ichochy.com)   
 GitHub：[https://github.com/ichochy/nce](https://github.com/ichochy/nce)   
 音频资源：[https://github.com/tangx/New-Concept-English](https://github.com/tangx/New-Concept-English)    
 
