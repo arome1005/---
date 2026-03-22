@@ -1,0 +1,100 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user basic information and statistics.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique user ID from Firebase Auth." },
+        "email": { "type": "string", "format": "email", "description": "User's email address." },
+        "displayName": { "type": "string", "description": "User's display name." },
+        "photoURL": { "type": "string", "format": "uri", "description": "URL to user's profile picture." },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "chatsCount": { "type": "integer", "description": "Total number of chat messages sent." },
+            "wordsCount": { "type": "integer", "description": "Total number of words in vocabulary." },
+            "writingCount": { "type": "integer", "description": "Total number of writing tasks completed." },
+            "lastActive": { "type": "string", "format": "date-time", "description": "Last time the user was active." }
+          }
+        }
+      },
+      "required": ["uid", "email", "stats"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A single message in a chat conversation.",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "model"], "description": "Who sent the message." },
+        "text": { "type": "string", "description": "The content of the message." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the message was sent." },
+        "type": { "type": "string", "enum": ["text", "image", "file"], "description": "Type of message content." },
+        "mediaUrl": { "type": "string", "format": "uri", "description": "Optional URL for media attachments." }
+      },
+      "required": ["role", "text", "timestamp"]
+    },
+    "Word": {
+      "title": "Vocabulary Word",
+      "description": "A word saved to the user's personal vocabulary list.",
+      "type": "object",
+      "properties": {
+        "word": { "type": "string", "description": "The English word." },
+        "translation": { "type": "string", "description": "The Chinese translation." },
+        "phonetic": { "type": "string", "description": "Phonetic transcription." },
+        "definition": { "type": "string", "description": "English definition." },
+        "example": { "type": "string", "description": "Example sentence." },
+        "mastery": { "type": "string", "enum": ["new", "learning", "mastered"], "description": "Learning status." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the word was added." }
+      },
+      "required": ["word", "translation", "mastery", "timestamp"]
+    },
+    "PronunciationAttempt": {
+      "title": "Pronunciation Attempt",
+      "description": "A recording and evaluation of a user's pronunciation.",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "description": "The target text for pronunciation." },
+        "score": { "type": "integer", "description": "The pronunciation score (0-100)." },
+        "feedback": { "type": "string", "description": "AI feedback on the pronunciation." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the attempt was made." }
+      },
+      "required": ["text", "score", "timestamp"]
+    },
+    "WritingTask": {
+      "title": "Writing Task",
+      "description": "A writing exercise completed by the user.",
+      "type": "object",
+      "properties": {
+        "topic": { "type": "string", "description": "The writing topic or prompt." },
+        "content": { "type": "string", "description": "The user's written content." },
+        "score": { "type": "integer", "description": "The score given by AI (0-100)." },
+        "feedback": { "type": "string", "description": "AI feedback on the writing." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the task was submitted." }
+      },
+      "required": ["topic", "content", "score", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": {
+      "schema": "UserProfile",
+      "description": "User profile document."
+    },
+    "/users/{uid}/chats/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "Chat messages for a specific user."
+    },
+    "/users/{uid}/vocabulary/{wordId}": {
+      "schema": "Word",
+      "description": "Vocabulary words for a specific user."
+    },
+    "/users/{uid}/pronunciation/{attemptId}": {
+      "schema": "PronunciationAttempt",
+      "description": "Pronunciation attempts for a specific user."
+    },
+    "/users/{uid}/writing/{taskId}": {
+      "schema": "WritingTask",
+      "description": "Writing tasks for a specific user."
+    }
+  }
+}

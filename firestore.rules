@@ -1,0 +1,177 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {uid}
+    // Fields:
+    //   - uid: string (required, immutable) - Firebase Auth UID
+    //   - email: string (required, format: email) - User's email
+    //   - displayName: string (optional) - User's display name
+    //   - photoURL: string (optional, format: url) - User's photo URL
+    //   - stats: map (required) - User statistics
+    //
+    // Collection: users/{uid}/chats
+    // Fields:
+    //   - role: string (required, enum: ['user', 'model'])
+    //   - text: string (required, max: 5000)
+    //   - timestamp: timestamp (required)
+    //   - type: string (optional, enum: ['text', 'image', 'file'])
+    //
+    // Collection: users/{uid}/vocabulary
+    // Fields:
+    //   - word: string (required, max: 100)
+    //   - translation: string (required, max: 200)
+    //   - phonetic: string (optional, max: 100)
+    //   - definition: string (optional, max: 500)
+    //   - example: string (optional, max: 1000)
+    //   - mastery: string (required, enum: ['new', 'learning', 'mastered'])
+    //   - timestamp: timestamp (required)
+    //
+    // Collection: users/{uid}/pronunciation
+    // Fields:
+    //   - text: string (required, max: 500)
+    //   - score: number (required, range: 0-100)
+    //   - feedback: string (optional, max: 2000)
+    //   - timestamp: timestamp (required)
+    //
+    // Collection: users/{uid}/writing
+    // Fields:
+    //   - topic: string (required, max: 500)
+    //   - content: string (required, max: 10000)
+    //   - score: number (required, range: 0-100)
+    //   - feedback: string (optional, max: 5000)
+    //   - timestamp: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'stats']) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             data.stats is map &&
+             data.stats.keys().hasAll(['chatsCount', 'wordsCount', 'writingCount']) &&
+             data.stats.chatsCount is int &&
+             data.stats.wordsCount is int &&
+             data.stats.writingCount is int &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100)) &&
+             (!('photoURL' in data) || isValidUrl(data.photoURL));
+    }
+
+    function isValidChat(data) {
+      return data.keys().hasAll(['role', 'text', 'timestamp']) &&
+             data.role in ['user', 'model'] &&
+             data.text is string && data.text.size() < 5000 &&
+             data.timestamp is timestamp &&
+             (!('type' in data) || data.type in ['text', 'image', 'file']);
+    }
+
+    function isValidWord(data) {
+      return data.keys().hasAll(['word', 'translation', 'mastery', 'timestamp']) &&
+             data.word is string && data.word.size() < 100 &&
+             data.translation is string && data.translation.size() < 200 &&
+             data.mastery in ['new', 'learning', 'mastered'] &&
+             data.timestamp is timestamp &&
+             (!('phonetic' in data) || (data.phonetic is string && data.phonetic.size() < 100)) &&
+             (!('definition' in data) || (data.definition is string && data.definition.size() < 500)) &&
+             (!('example' in data) || (data.example is string && data.example.size() < 1000));
+    }
+
+    function isValidPronunciation(data) {
+      return data.keys().hasAll(['text', 'score', 'timestamp']) &&
+             data.text is string && data.text.size() < 500 &&
+             data.score is number && data.score >= 0 && data.score <= 100 &&
+             data.timestamp is timestamp &&
+             (!('feedback' in data) || (data.feedback is string && data.feedback.size() < 2000));
+    }
+
+    function isValidWriting(data) {
+      return data.keys().hasAll(['topic', 'content', 'score', 'timestamp']) &&
+             data.topic is string && data.topic.size() < 500 &&
+             data.content is string && data.content.size() < 10000 &&
+             data.score is number && data.score >= 0 && data.score <= 100 &&
+             data.timestamp is timestamp &&
+             (!('feedback' in data) || (data.feedback is string && data.feedback.size() < 5000));
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && isValidUser(request.resource.data);
+      allow update: if isOwner(uid) && isValidUser(request.resource.data) && uidNotModified();
+      allow delete: if false; // Users cannot delete their profiles via the app
+
+      match /chats/{chatId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidChat(request.resource.data);
+        allow update: if isOwner(uid) && isValidChat(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /vocabulary/{wordId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidWord(request.resource.data);
+        allow update: if isOwner(uid) && isValidWord(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /pronunciation/{attemptId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidPronunciation(request.resource.data);
+        allow update: if isOwner(uid) && isValidPronunciation(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+
+      match /writing/{taskId} {
+        allow read: if isOwner(uid);
+        allow create: if isOwner(uid) && isValidWriting(request.resource.data);
+        allow update: if isOwner(uid) && isValidWriting(request.resource.data);
+        allow delete: if isOwner(uid);
+      }
+    }
+
+    // Default deny for all other collections
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

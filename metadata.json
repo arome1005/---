@@ -1,0 +1,5 @@
+{
+  "name": "English Buddy",
+  "description": "AI-powered English learning platform with chat, listening, speaking, reading, writing, and vocabulary modules.",
+  "requestFramePermissions": ["microphone", "camera"]
+}
